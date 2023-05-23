@@ -1,0 +1,75 @@
+##########1ere partie deployement config / 2eme partie service config ############
+
+
+#deployement: component k8s on Master Nodes (Stateless), plan de deployement
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webApp-deployment
+  labels:
+    #(1), label shared by all instances
+    app: webApp
+spec:
+  replicas: 1
+  selector:
+    #matchLabels: identifie un groupe de ressources (par le nom)
+    #matchLabels: fait matcher deployement [labels ->app] & le nom des intances demaré [templates]
+    matchLabels:
+      #(2), label shared by all instances
+      app: webApp
+  #template: config du pod
+  template:
+    metadata:
+      labels:
+        #(3), label shared by all instances
+        app: webApp
+    spec:
+      containers:
+        #nom du container
+      - name: webApp
+        #de meme que dans mongo.yaml, une petite appli node js pulled from Docker Hub
+        image: nanajanashia/k8s-demo-app:v1.0
+        ports:
+        #port par defaut nodejs: 3000
+        - containerPort: 3000
+        env:
+        - name: USER_NAME
+          valueFrom:
+            secretKeyRef:
+              #va recuperer la valeur de mongo-user depuis mongo-secret
+              name: mongo-secret
+              key: mongo-user
+        - name: USER_PWD
+          valueFrom:
+            secretKeyRef:
+              #va recuperer la valeur de mongo-user depuis mongo-secret
+              name: mongo-secret
+              key: mongo-password
+        - name: DB_URL
+          valueFrom:
+            configMapKeyRef:
+              name: myMongo-config
+              key: mongo-url
+
+#---: fin de section, on peut avoire multiple config dans un seul fichier
+---
+#service
+apiVersion: v1
+kind: Service
+metadata:
+  name: webApp-service
+spec:
+  type: NodePort
+  #NodePort: External ssrvice Type
+  selector:
+    #selector: fait le forwarding des request et conmnexion entre service et pod
+    ###app.kubernetes.io/name:
+    #app de meme que dans template, que ce soit le key ou le value
+    app: webApp
+  ports:
+    - protocol: TCP
+      port: 3000
+      #targetPort: c est le port du pod (dans template)
+      targetPort: 3000
+      #NodePort: doit etre entre 30000 et 32767
+      NodePort: 30100

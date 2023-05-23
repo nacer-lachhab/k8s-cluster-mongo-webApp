@@ -1,0 +1,9 @@
+#ConfigMap: composant de config externalisé d'une app (MongoDB dans ce cas), Master Nodes
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  #nom, a choisir comme on veut
+  name: myMongo-config
+data:
+  #myMongo-service: un service k8s que je vais creer dans mongo.yaml
+  mongo-url: myMongo-service

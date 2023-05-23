@@ -1,0 +1,67 @@
+##########1ere partie deployement config / 2eme partie service config ############
+
+
+#deployement: component k8s on Master Nodes (Stateless), plan de deployement
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myMongo-deployment
+  labels:
+    #(1), label shared by all instances
+    app: myMongo
+spec:
+  replicas: 1
+  selector:
+    #matchLabels: identifie un groupe de ressources (par le nom)
+    #matchLabels: fait matcher deployement [labels ->app] & le nom des intances demaré [templates]
+    matchLabels:
+      #(2), label shared by all instances
+      app: myMongo
+  #template: config du pod
+  template:
+    metadata:
+      labels:
+        #(3), label shared by all instances
+        app: myMongo
+    spec:
+      containers:
+        #nom du container
+      - name: mongodb
+        #l'image de mongo db tag 5.0 (verrsion d'image), pulled depuis Docker Hub
+        image: mongo:5.0
+        ports:
+        #port par defaut mongodb: 27017
+        - containerPort: 27017
+        #env: lire des variables d'environnement depuis le container
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          valueFrom:
+            secretKeyRef:
+              #va recuperer la valeur de mongo-user depuis mongo-secret
+              name: mongo-secret
+              key: mongo-user
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              #va recuperer la valeur de mongo-password depuis mongo-secret
+              name: mongo-secret
+              key: mongo-password 
+
+#---: fin de section, on peut avoire multiple config dans un seul fichier
+---
+#service
+apiVersion: v1
+kind: Service
+metadata:
+  name: myMongo-service
+spec:
+  selector:
+    #selector: fait le forwarding des request et conmnexion entre service et pod
+    ###app.kubernetes.io/name:
+    #app de meme que dans template, que ce soit le key ou le value
+    app: myMongo
+  ports:
+    - protocol: TCP
+      port: 27017
+      #targetPort: c est le port du pod (dans template)
+      targetPort: 27017
